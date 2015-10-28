@@ -7,6 +7,8 @@ Version: 1.2
 Author: Rebecca Appleton
 License: GPL
 */
+include_once('admin/spotlight-item-settings.php');
+
 class RA_Spotlight_Item_Widget extends WP_Widget {
 
 	function __construct() {
@@ -44,6 +46,12 @@ class RA_Spotlight_Item_Widget extends WP_Widget {
 		$title_words = explode(" ", $title);
 		$widgetclassfromtitle = implode("-", $title_words);
 
+		// If set to use globally-set More Link Text (from the plugin settings rather than the widget settings), grab that string too.
+		$morelinktext = null;
+		if (get_option('ra_spotlight_setmorelinktextglobally')) {
+			$morelinktext = get_option('ra_spotlight_morelinktext');
+		}
+
 
 		/*
 	 	 *	Righto, let's print us a widget then!
@@ -66,10 +74,16 @@ class RA_Spotlight_Item_Widget extends WP_Widget {
 			</div>	
 		<?php  endif; ?>
 
-		<div class="readmore_text textwidget"><?php echo !empty( $instance['filter'] ) ? wpautop( $text ) : $text; ?></div>
+		<div class="readmore_text textwidget">
+			<?php echo !empty( $instance['filter'] ) ? wpautop( $text ) : $text; ?>
+		</div>
 		
 		<?php if ( !empty( $title ) ) : ?>
-			<div class="readmore_button"><a href="<?php echo $buttonurl; ?>" class="<?php echo $buttonclass; ?>"><?php echo $buttontext; ?></a></div>	
+			<div class="readmore_button">
+				<a href="<?php echo $buttonurl; ?>" class="<?php echo $buttonclass; ?>">
+					<?php echo '' . ($morelinktext ? $morelinktext : $buttontext); ?>
+				</a>
+			</div>	
 		<?php endif; ?>
 
 		<?php
@@ -153,151 +167,5 @@ class RA_Spotlight_Item_Widget extends WP_Widget {
 }
 // Register widget by creating an anonymous function for it
 add_action( 'widgets_init', create_function( '', 'register_widget( "RA_Spotlight_Item_Widget" );' ) );
-
-
-
-/* 
- * Add a settings page to the admin menu to set universal plugin preferences
- */
-function ra_spotlight_item_menu() {
-	$page_title = "Spotlight Items";
-	$menu_title = "Spotlight Items";
-	$capability = 'manage_options';
-	$menu_slug = "ra_spotlight_items";
-	$function = "ra_spotlight_item_settings_page"; // Callback
-
-	add_options_page( $page_title, $menu_title, $capability, $menu_slug, $function);
-}
-add_action('admin_menu', 'ra_spotlight_item_menu');
-
-
-
-/* 
- * Register settings
- */
-function register_ra_spotlight_item_settings() {
-
-	//register_setting( 'ra_spotlight_item_options_group', 'ra_spotlight_item_morelink_text', 'sanitize_callback_function_name' );
-
-	/* Create a section to which we will add settings */
-	//$id = "ra_spotlight_item_general_settings";
-	//$title = "General Settings";
-	//$callback = "ra_spotlight_general_settings"; // function that fills the section with the desired content
-	//$page = "general";
-	//add_settings_section( $id, $title, $callback, $page );
-
-	/* Add the settings to the section */
-	//add_settings_field( 'ra_spotlight_item_morelink_text', 'Set Read More text globally', 'checkbox', 'ra_spotlight_item', 'theme_options', 'XX_Option2', 
-	//									$args = array('id' => 'checkbox2', 'type' => 'checkbox') );
-
-
- 	// Add the section to reading settings so we can add our
- 	// fields to it
- 	add_settings_section(
-		'ra_spotlight_item_general_settings',
-		'General Settings',
-		'ra_spotlight_general_settings',
-		'ra_spotlight_items'
-	);
- 	
- 	// Add the field with the names and function to use for our new
- 	// settings, put it in our new section
- 	add_settings_field(
-		'ra_spotlight_item_morelink_text',
-		'More Link text',
-		'create_morelink_field', // function
-		'ra_spotlight_items',
-		'ra_spotlight_item_general_settings'
-	);
- 	
- 	// Register our setting so that $_POST handling is done for us and
- 	// our callback function just has to echo the <input>
- 	register_setting( 'ra_spotlight_items', 'ra_spotlight_item_general_settings' );
-
-
-
-
-} 
-add_action( 'admin_init', 'register_ra_spotlight_item_settings' );
-
-
-function sanitize_callback_function_name() {
-
-}
-
-
- // ------------------------------------------------------------------
- // Settings section callback function
- // ------------------------------------------------------------------
- //
- // This function is needed if we added a new section. This function 
- // will be run at the start of our section
- //
-function ra_spotlight_general_settings() {
-	echo '<p>Intro text for our settings section</p>';
-}
-
-function create_morelink_field() {
-	echo "something";
-}
-
-
-/* 
- * Generate the settings page
- */
-function ra_spotlight_item_settings_page() {
-
-	// Ensure user has the required capabilities
-	if ( !current_user_can( 'manage_options' ) )  {
-		wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
-	}
-
-	// Hidden field gets set to Y on post.
-	$hidden_field_name = 'ra_spotlight_item_submit_hidden';
-
-
-    // Variables for the field and option names
-    
-    $useglobalmorelink_field_name = 'ra_spotlight_item_useglobalmorelink';
-    $useglobalmorelink_val = get_option( $useglobalmorelink_field_name ); // Read in existing option value from database
-
-    $morelinktext_field_name = 'ra_spotlight_item_morelink_text';
-    $morelinktext_val = get_option( $morelinktext_field_name );
-
-
-	// See if the user has posted us some information
-    // If they did, this hidden field will be set to 'Y'
-    if( isset($_POST[ $hidden_field_name ]) && $_POST[ $hidden_field_name ] == 'Y' ) {
-        // Read their posted value
-        $morelinktext_val = $_POST[ $morelinktext_field_name ];
-        // Save the posted value in the database
-        update_option( $morelinktext_field_name, $morelinktext_val );
-        // Put a "settings saved" message on the screen
-?>
-<div class="updated"><p><strong><?php _e('settings saved.', 'menu-test' ); ?></strong></p></div>
-<?php
-
-    }
-
-    // Now display the settings editing screen
-	echo '
-		<div class="wrap">
-			<h2>Spotlight Items</h2>
-
-			<form method="post" action="options.php">'; ?>
-				<input type="hidden" name="<?php echo $hidden_field_name; ?>" value="Y">
-
-
-				<?php 
-					settings_fields( 'ra_spotlight_item_general_settings' );
-					do_settings_sections( 'ra_spotlight_item_general_settings' );
-				?>
-
-				<?php submit_button(); ?>
-
-			<?php echo '</form>
-		</div>';
-}
-
 
 ?>

@@ -7,7 +7,7 @@ Version: 1.2
 Author: Rebecca Appleton
 License: GPL
 */
-include_once('admin/spotlight-item-settings.php');
+include_once('spotlight-item-settings.php');
 
 class RA_Spotlight_Item_Widget extends WP_Widget {
 
